@@ -15,6 +15,12 @@
   "api_secret",
   "column_break_credentials",
   "webhook_secret",
+  "oauth_section",
+  "access_token",
+  "refresh_token",
+  "column_break_oauth",
+  "token_expires_at",
+  "connector_settings",
   "mapping_section",
   "warehouse",
   "price_list",
@@ -94,6 +100,40 @@
    "fieldtype": "Password",
    "label": "Webhook Secret",
    "description": "Used to verify inbound webhook signatures from this platform."
+  },
+  {
+   "fieldname": "oauth_section",
+   "fieldtype": "Section Break",
+   "label": "OAuth / Connector State",
+   "collapsible": 1,
+   "description": "Filled in automatically by the connector (e.g. via the OAuth authorize flow). Not usually edited by hand."
+  },
+  {
+   "fieldname": "access_token",
+   "fieldtype": "Password",
+   "label": "Access Token"
+  },
+  {
+   "fieldname": "refresh_token",
+   "fieldtype": "Password",
+   "label": "Refresh Token"
+  },
+  {
+   "fieldname": "column_break_oauth",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "token_expires_at",
+   "fieldtype": "Datetime",
+   "label": "Access Token Expires At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "connector_settings",
+   "fieldtype": "Code",
+   "options": "JSON",
+   "label": "Connector Settings (JSON)",
+   "description": "Free-form platform-specific config the connector needs beyond the standard fields above (e.g. Salla branch/location ID). Keeps this doctype's schema stable as new platforms or requirements are added - no migration needed to support a new key."
   },
   {
    "fieldname": "mapping_section",

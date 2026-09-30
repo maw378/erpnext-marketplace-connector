@@ -1,0 +1,98 @@
+{
+ "actions": [],
+ "autoname": "hash",
+ "creation": "2026-09-30 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "marketplace_channel",
+  "event",
+  "column_break_log",
+  "received_at",
+  "processed",
+  "signature_valid",
+  "payload_section",
+  "payload"
+ ],
+ "fields": [
+  {
+   "fieldname": "marketplace_channel",
+   "fieldtype": "Link",
+   "label": "Marketplace Channel",
+   "options": "Marketplace Channel",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "event",
+   "fieldtype": "Data",
+   "label": "Event",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "description": "Platform-specific event name, e.g. order.created"
+  },
+  {
+   "fieldname": "column_break_log",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "now",
+   "fieldname": "received_at",
+   "fieldtype": "Datetime",
+   "label": "Received At",
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "processed",
+   "fieldtype": "Check",
+   "label": "Processed",
+   "in_list_view": 1,
+   "description": "Whether this event has been turned into an ERPNext document yet. Set by whatever handles the event, not automatically."
+  },
+  {
+   "default": "1",
+   "fieldname": "signature_valid",
+   "fieldtype": "Check",
+   "label": "Signature Valid",
+   "read_only": 1
+  },
+  {
+   "fieldname": "payload_section",
+   "fieldtype": "Section Break",
+   "label": "Payload"
+  },
+  {
+   "fieldname": "payload",
+   "fieldtype": "Code",
+   "options": "JSON",
+   "label": "Raw Payload"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-09-30 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "ERPNext Marketplace Connector",
+ "name": "Marketplace Webhook Log",
+ "naming_rule": "Random",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC"
+}
