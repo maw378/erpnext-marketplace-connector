@@ -1,0 +1,212 @@
+{
+ "actions": [],
+ "autoname": "field:channel_name",
+ "creation": "2026-09-30 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "channel_name",
+  "platform",
+  "enabled",
+  "column_break_identity",
+  "store_url",
+  "credentials_section",
+  "api_key",
+  "api_secret",
+  "column_break_credentials",
+  "webhook_secret",
+  "mapping_section",
+  "warehouse",
+  "price_list",
+  "column_break_mapping",
+  "default_customer",
+  "customer_group",
+  "tax_template",
+  "sync_section",
+  "sync_status",
+  "last_synced_orders",
+  "column_break_sync",
+  "last_synced_stock",
+  "last_sync_error",
+  "notes_section",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "channel_name",
+   "fieldtype": "Data",
+   "label": "Channel Name",
+   "reqd": 1,
+   "unique": 1,
+   "description": "A unique label for this store connection, e.g. \"Salla - Main Store\" or \"Shopify - EU\"."
+  },
+  {
+   "fieldname": "platform",
+   "fieldtype": "Select",
+   "label": "Platform",
+   "options": "Shopify\nWooCommerce\nSalla\nZid\nOther",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enabled",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "description": "Turn syncing off for this channel without deleting its configuration."
+  },
+  {
+   "fieldname": "column_break_identity",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "store_url",
+   "fieldtype": "Data",
+   "label": "Store URL",
+   "reqd": 1,
+   "description": "Base URL of the store, e.g. https://mystore.myshopify.com or https://mystore.salla.sa"
+  },
+  {
+   "fieldname": "credentials_section",
+   "fieldtype": "Section Break",
+   "label": "API Credentials"
+  },
+  {
+   "fieldname": "api_key",
+   "fieldtype": "Data",
+   "label": "API Key / Client ID"
+  },
+  {
+   "fieldname": "api_secret",
+   "fieldtype": "Password",
+   "label": "API Secret / Access Token",
+   "description": "Stored encrypted. Never exposed to the browser."
+  },
+  {
+   "fieldname": "column_break_credentials",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "webhook_secret",
+   "fieldtype": "Password",
+   "label": "Webhook Secret",
+   "description": "Used to verify inbound webhook signatures from this platform."
+  },
+  {
+   "fieldname": "mapping_section",
+   "fieldtype": "Section Break",
+   "label": "ERPNext Mapping"
+  },
+  {
+   "fieldname": "warehouse",
+   "fieldtype": "Link",
+   "label": "Warehouse",
+   "options": "Warehouse",
+   "reqd": 1,
+   "description": "Stock for orders from this channel is deducted from here, and stock levels are pushed back from here."
+  },
+  {
+   "fieldname": "price_list",
+   "fieldtype": "Link",
+   "label": "Price List",
+   "options": "Price List"
+  },
+  {
+   "fieldname": "column_break_mapping",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "default_customer",
+   "fieldtype": "Link",
+   "label": "Default Customer",
+   "options": "Customer",
+   "description": "Used for orders when the channel does not provide enough detail to create/match a distinct Customer."
+  },
+  {
+   "fieldname": "customer_group",
+   "fieldtype": "Link",
+   "label": "Customer Group",
+   "options": "Customer Group"
+  },
+  {
+   "fieldname": "tax_template",
+   "fieldtype": "Link",
+   "label": "Sales Taxes and Charges Template",
+   "options": "Sales Taxes and Charges Template"
+  },
+  {
+   "fieldname": "sync_section",
+   "fieldtype": "Section Break",
+   "label": "Sync Status"
+  },
+  {
+   "default": "Idle",
+   "fieldname": "sync_status",
+   "fieldtype": "Select",
+   "label": "Sync Status",
+   "options": "Idle\nSyncing\nError",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_synced_orders",
+   "fieldtype": "Datetime",
+   "label": "Last Synced (Orders)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_sync",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "last_synced_stock",
+   "fieldtype": "Datetime",
+   "label": "Last Synced (Stock)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_sync_error",
+   "fieldtype": "Small Text",
+   "label": "Last Sync Error",
+   "read_only": 1
+  },
+  {
+   "fieldname": "notes_section",
+   "fieldtype": "Section Break",
+   "label": "Notes",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-09-30 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "ERPNext Marketplace Connector",
+ "name": "Marketplace Channel",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

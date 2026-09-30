@@ -1,0 +1,89 @@
+{
+ "actions": [],
+ "autoname": "format:{marketplace_channel}-{channel_sku}",
+ "creation": "2026-09-30 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "marketplace_channel",
+  "item_code",
+  "column_break_map",
+  "channel_sku",
+  "channel_product_id",
+  "channel_variant_id",
+  "enabled"
+ ],
+ "fields": [
+  {
+   "fieldname": "marketplace_channel",
+   "fieldtype": "Link",
+   "label": "Marketplace Channel",
+   "options": "Marketplace Channel",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "label": "Item",
+   "options": "Item",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "column_break_map",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "channel_sku",
+   "fieldtype": "Data",
+   "label": "Channel SKU",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "channel_product_id",
+   "fieldtype": "Data",
+   "label": "Channel Product ID"
+  },
+  {
+   "fieldname": "channel_variant_id",
+   "fieldtype": "Data",
+   "label": "Channel Variant ID"
+  },
+  {
+   "default": "1",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enabled",
+   "in_list_view": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-09-30 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "ERPNext Marketplace Connector",
+ "name": "Marketplace Item Map",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}
