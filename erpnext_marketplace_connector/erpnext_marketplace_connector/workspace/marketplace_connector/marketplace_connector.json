@@ -1,0 +1,74 @@
+{
+ "charts": [],
+ "content": "[{\"id\": \"mc-hdr-1\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Marketplace Connector</b></span>\", \"col\": 12}}, {\"id\": \"mc-sc-1\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Marketplace Channel\", \"col\": 3}}, {\"id\": \"mc-sc-2\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Marketplace Item Map\", \"col\": 3}}, {\"id\": \"mc-sp-1\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"mc-hdr-2\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Documents</b></span>\", \"col\": 12}}, {\"id\": \"mc-card-1\", \"type\": \"card\", \"data\": {\"card_name\": \"Marketplace Connector\", \"col\": 4}}]",
+ "creation": "2026-09-30 00:00:00.000000",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "integration",
+ "idx": 0,
+ "indicator_color": "green",
+ "is_hidden": 0,
+ "label": "Marketplace Connector",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Marketplace Connector",
+   "link_count": 2,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Marketplace Channel",
+   "link_count": 0,
+   "link_to": "Marketplace Channel",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Marketplace Item Map",
+   "link_count": 0,
+   "link_to": "Marketplace Item Map",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-09-30 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "ERPNext Marketplace Connector",
+ "name": "Marketplace Connector",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [],
+ "sequence_id": 1.0,
+ "shortcuts": [
+  {
+   "doc_view": "List",
+   "label": "Marketplace Channel",
+   "link_to": "Marketplace Channel",
+   "type": "DocType"
+  },
+  {
+   "doc_view": "List",
+   "label": "Marketplace Item Map",
+   "link_to": "Marketplace Item Map",
+   "type": "DocType"
+  }
+ ],
+ "title": "Marketplace Connector"
+}
