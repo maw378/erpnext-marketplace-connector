@@ -41,9 +41,16 @@ Create a Marketplace Channel:
 ## 5. Test
 - [ ] Place or edit an order on the Salla store.
 - [ ] Marketplace Webhook Log: new `order.created` row, Signature Valid ticked, error empty.
-- [ ] A draft Sales Order exists with PO number `Salla-<order number>`, the right company and items.
+- [ ] A draft Sales Order exists with PO number `<Channel Name>-<order number>` and its **Marketplace Channel** field set, the right company and items.
 - [ ] Changing the order's status adds a comment to the same Sales Order; cancelling it removes the draft.
 - [ ] Print an invoice: the Saudi Tax Invoice shows seller details and a reserved QR box (the QR fills in after ZATCA clearance).
+
+## Several stores on one site
+Each store is its own channel; nothing is shared except what you choose to (items with the same SKU, the `Salla Customer`).
+- Connecting a channel stores the store's Salla ID in **Store ID**. After that, a webhook whose store does not match the channel is logged as `Ignored: webhook is from store ...` and creates nothing. Channels connected before this existed have no Store ID and accept everything; reconnect them to switch the check on.
+- Sales Orders carry the **Marketplace Channel** they came from (filter on it in the list). Duplicate detection and updates are per channel, and the PO number includes the channel name, so two stores with the same order number cannot clash.
+- Each channel needs its own Item Maps: run **Import Products** on every channel.
+- A single store keeps working exactly as before. The checks only matter once a second channel exists.
 
 ## 6. Troubleshooting
 | Symptom | Likely cause |
@@ -55,6 +62,7 @@ Create a Marketplace Channel:
 | "No Marketplace Item Map for: ..." | Run Import Products; the order's variant is not mapped yet. |
 | `Unknown column 'tabContact.is_billing_contact'` | See step 1: Contact custom field missing. |
 | Log has an empty error and no Sales Order | Check ERPNext Error Log for `Marketplace webhook <name> failed`. |
+| Log says `Ignored: webhook is from store ...` | The webhook belongs to another store than this channel's Store ID: a URL registered with the wrong channel name, or the app-level webhook field. Fix the URL, or reconnect the channel if its Store ID is wrong. |
 | Failed log does not retry | Expected. Trigger a new event (change the order's status) after fixing the cause. |
 
 ## Still open for every client

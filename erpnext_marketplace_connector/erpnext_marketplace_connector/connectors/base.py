@@ -72,6 +72,10 @@ class BaseConnector:
 		"""Validate an inbound webhook against this channel's webhook secret."""
 		raise NotImplementedError
 
+	def fetch_store_id(self) -> str | None:
+		"""Return the platform's id for the store these credentials belong to, if it has one."""
+		return None
+
 	def fetch_catalog(self) -> list[dict]:
 		"""Return every sellable variant on the channel as dicts with keys:
 		product_id, variant_id, sku, name, price, stock_qty (None = unlimited/unknown)."""

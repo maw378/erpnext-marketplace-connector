@@ -6,6 +6,17 @@ import frappe
 from .connectors import get_connector
 
 
+def store_matches(channel, payload: dict) -> bool:
+	"""A channel that knows its store id only accepts webhooks from that store.
+
+	Salla puts the store id in `merchant`. Channels without a store id (connected
+	before this check existed, or other platforms) accept everything, as before.
+	"""
+	if not channel.get("store_id") or "merchant" not in payload:
+		return True
+	return str(payload["merchant"]) == str(channel.store_id)
+
+
 def _get_channel(channel_name: str):
 	if not frappe.db.exists("Marketplace Channel", channel_name):
 		frappe.throw(f"No Marketplace Channel named {channel_name}", frappe.DoesNotExistError)
@@ -61,6 +72,13 @@ def oauth_callback(code: str | None = None, state: str | None = None, error: str
 		"/api/method/erpnext_marketplace_connector.erpnext_marketplace_connector.api.oauth_callback"
 	)
 	connector.exchange_code_for_token(code, redirect_uri)
+	try:
+		store_id = connector.fetch_store_id()
+		if store_id:
+			doc.db_set("store_id", store_id, update_modified=False)
+	except Exception:
+		# Connecting still succeeds; without a store id the webhook store check is just off.
+		frappe.log_error(title=f"Could not read store id for {doc.name}")
 	doc.db_set("sync_status", "Idle", update_modified=False)
 	doc.db_set("last_sync_error", "", update_modified=False)
 
@@ -108,6 +126,11 @@ def webhook(channel: str | None = None):
 	)
 	log.insert(ignore_permissions=True)
 	frappe.db.commit()
+
+	if is_valid and not store_matches(doc, payload):
+		log.db_set("error", f"Ignored: webhook is from store {payload.get('merchant')}, channel {doc.name} is store {doc.store_id}.")
+		frappe.db.commit()
+		return {"ok": True, "ignored": "store mismatch"}
 
 	if is_valid:
 		frappe.enqueue(

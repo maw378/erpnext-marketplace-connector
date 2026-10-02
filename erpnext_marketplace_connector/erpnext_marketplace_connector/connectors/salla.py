@@ -208,6 +208,12 @@ class SallaConnector(BaseConnector):
 		expected = hmac.new(secret.encode(), request_body, hashlib.sha256).hexdigest()
 		return hmac.compare_digest(expected, signature_header)
 
+	def fetch_store_id(self) -> str | None:
+		response = requests.get(f"{API_BASE_URL}/store/info", headers=self._headers(), timeout=REQUEST_TIMEOUT)
+		response.raise_for_status()
+		store_id = (response.json().get("data") or {}).get("id")
+		return str(store_id) if store_id else None
+
 	def fetch_catalog(self) -> list[dict]:
 		"""Walk GET /products (paginated); each product's `skus` are its variants."""
 		variants = []

@@ -83,7 +83,7 @@ app_license = "mit"
 # ------------
 
 # before_install = "erpnext_marketplace_connector.install.before_install"
-# after_install = "erpnext_marketplace_connector.install.after_install"
+after_install = "erpnext_marketplace_connector.setup.after_install"
 
 # Uninstallation
 # ------------

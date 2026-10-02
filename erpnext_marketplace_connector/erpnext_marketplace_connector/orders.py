@@ -40,10 +40,26 @@ def _process_order_event(log, event: str, order: dict) -> None:
 	if not reference:
 		frappe.throw("Order payload has neither reference_id nor id")
 	log.db_set("order_reference", reference)
-	po_no = f"{channel.platform}-{reference}"
+	# Channel name, not just platform: ERPNext rejects two Sales Orders with the same
+	# customer + PO number, and two stores can share an order number and a default
+	# customer. `legacy_po_no` is the format used before multi-store support.
+	po_no = f"{channel.name}-{reference}"
+	legacy_po_no = f"{channel.platform}-{reference}"
 
 	status_slug = ((order.get("status") or {}).get("slug") or "").lower()
-	existing = frappe.db.get_value("Sales Order", {"po_no": po_no, "docstatus": ["<", 2]}, "name")
+	# Per channel, so two stores that share an order number stay separate.
+	# Untagged orders (the patch tags them from their webhook logs; this covers any it
+	# could not) are only attributed to a channel when the site has a single one.
+	only_channel = frappe.db.count("Marketplace Channel", {"platform": channel.platform}) == 1
+	existing = frappe.db.get_value(
+		"Sales Order",
+		{
+			"po_no": ["in", [po_no, legacy_po_no]],
+			"docstatus": ["<", 2],
+			"marketplace_channel": ["in", [channel.name, ""] if only_channel else [channel.name]],
+		},
+		"name",
+	)
 
 	if event == "order.cancelled" or status_slug in ("canceled", "cancelled"):
 		if existing:
@@ -127,6 +143,7 @@ def _create_sales_order(channel, order: dict, items: list[dict], po_no: str):
 			"company": company,
 			"customer": channel.default_customer,
 			"po_no": po_no,
+			"marketplace_channel": channel.name,
 			"transaction_date": frappe.utils.today(),
 			"delivery_date": frappe.utils.today(),
 			"selling_price_list": channel.price_list or None,

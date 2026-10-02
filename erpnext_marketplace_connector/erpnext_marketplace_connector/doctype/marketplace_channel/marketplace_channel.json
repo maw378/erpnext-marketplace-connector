@@ -10,6 +10,7 @@
   "enabled",
   "column_break_identity",
   "store_url",
+  "store_id",
   "credentials_section",
   "api_key",
   "api_secret",
@@ -222,6 +223,13 @@
    "fieldname": "notes",
    "fieldtype": "Small Text",
    "label": "Notes"
+  },
+  {
+   "fieldname": "store_id",
+   "fieldtype": "Data",
+   "label": "Store ID",
+   "read_only": 1,
+   "description": "Filled in when the channel connects. Incoming webhooks whose store does not match are ignored, so several stores on one site cannot mix up orders. Empty = no check."
   }
  ],
  "index_web_pages_for_search": 1,
