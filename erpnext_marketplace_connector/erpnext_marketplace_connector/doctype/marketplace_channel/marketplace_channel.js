@@ -15,6 +15,18 @@ frappe.ui.form.on("Marketplace Channel", {
 				}
 				window.location.href = `/api/method/erpnext_marketplace_connector.erpnext_marketplace_connector.api.oauth_redirect?channel=${encodeURIComponent(frm.doc.name)}`;
 			});
+
+			frm.add_custom_button(__("Register Webhooks"), () => {
+				frappe.call({
+					method: "erpnext_marketplace_connector.erpnext_marketplace_connector.api.register_webhooks",
+					args: { channel: frm.doc.name },
+					freeze: true,
+					callback: (r) => {
+						const done = r.message.registered.length ? r.message.registered.join(", ") : __("nothing new");
+						frappe.msgprint({ title: __("Webhooks"), message: `${__("Registered")}: ${done}<br>${r.message.url}`, indicator: "green" });
+					},
+				});
+			});
 		}
 	},
 

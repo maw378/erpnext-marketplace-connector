@@ -71,3 +71,11 @@ class BaseConnector:
 	def verify_webhook_signature(self, request_body: bytes, signature_header: str) -> bool:
 		"""Validate an inbound webhook against this channel's webhook secret."""
 		raise NotImplementedError
+
+	def fetch_order_items(self, order_id) -> list[dict]:
+		"""Return the line items of one order, when a webhook payload doesn't include them."""
+		raise NotImplementedError
+
+	def register_webhooks(self, url: str, events: list[str]) -> list[str]:
+		"""Subscribe the platform to call `url` for `events`; return the events newly registered."""
+		raise NotImplementedError

@@ -11,6 +11,9 @@
   "received_at",
   "processed",
   "signature_valid",
+  "order_reference",
+  "sales_order",
+  "error",
   "payload_section",
   "payload"
  ],
@@ -57,6 +60,28 @@
    "fieldname": "signature_valid",
    "fieldtype": "Check",
    "label": "Signature Valid",
+   "read_only": 1
+  },
+  {
+   "fieldname": "order_reference",
+   "fieldtype": "Data",
+   "label": "Order Reference",
+   "in_list_view": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "sales_order",
+   "fieldtype": "Link",
+   "label": "Sales Order",
+   "options": "Sales Order",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "error",
+   "fieldtype": "Small Text",
+   "label": "Processing Error",
    "read_only": 1
   },
   {

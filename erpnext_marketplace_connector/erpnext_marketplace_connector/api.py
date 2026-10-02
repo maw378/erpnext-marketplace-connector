@@ -1,4 +1,5 @@
 import json
+from urllib.parse import urlencode
 
 import frappe
 
@@ -68,18 +69,22 @@ def oauth_callback(code: str | None = None, state: str | None = None, error: str
 
 
 @frappe.whitelist(allow_guest=True)
-def webhook(channel: str):
+def webhook(channel: str | None = None):
 	"""Generic inbound webhook receiver, shared by every platform.
 
 	Each Marketplace Channel gets its own webhook URL by putting its name in
 	the `channel` query param, e.g.:
 	.../api/method/erpnext_marketplace_connector.erpnext_marketplace_connector.api.webhook?channel=Salla+Main-Store
 
-	Verifies the signature using that channel's webhook secret, then just
-	logs the event to Marketplace Webhook Log - turning a logged event into
-	an actual ERPNext document (Sales Order, stock update, ...) is deliberately
-	left to be built next, per platform, once we've seen real payloads land.
+	Verifies the signature using that channel's webhook secret and logs the event
+	to Marketplace Webhook Log. Valid events are then handed to a background job
+	(orders.process_webhook_log) that creates/updates the ERPNext documents.
 	"""
+	# For JSON deliveries Frappe fills form_dict from the body only, so the channel
+	# name in the URL's query string has to be read from the request itself.
+	channel = channel or frappe.request.args.get("channel")
+	if not channel:
+		frappe.throw("Missing channel", frappe.ValidationError)
 	doc = _get_channel(channel)
 	connector = get_connector(doc)
 
@@ -104,8 +109,28 @@ def webhook(channel: str):
 	log.insert(ignore_permissions=True)
 	frappe.db.commit()
 
+	if is_valid:
+		frappe.enqueue(
+			"erpnext_marketplace_connector.erpnext_marketplace_connector.orders.process_webhook_log",
+			queue="short",
+			log_name=log.name,
+			enqueue_after_commit=True,
+		)
+
 	if not is_valid:
 		frappe.local.response["http_status_code"] = 401
 		return {"ok": False, "error": "invalid signature"}
 
 	return {"ok": True}
+
+
+@frappe.whitelist()
+def register_webhooks(channel: str):
+	"""Subscribe the platform to order events, delivering to this site's webhook URL."""
+	frappe.only_for("System Manager")
+	doc = _get_channel(channel)
+	url = frappe.utils.get_url(
+		"/api/method/erpnext_marketplace_connector.erpnext_marketplace_connector.api.webhook"
+	) + "?" + urlencode({"channel": doc.name})
+	registered = get_connector(doc).register_webhooks(url, ["order.created", "order.updated", "order.cancelled"])
+	return {"url": url, "registered": registered}

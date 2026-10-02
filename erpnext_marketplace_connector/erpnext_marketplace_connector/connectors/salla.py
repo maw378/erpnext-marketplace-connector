@@ -207,3 +207,50 @@ class SallaConnector(BaseConnector):
 			return False
 		expected = hmac.new(secret.encode(), request_body, hashlib.sha256).hexdigest()
 		return hmac.compare_digest(expected, signature_header)
+
+	def fetch_order_items(self, order_id) -> list[dict]:
+		"""Webhook payloads normally carry items; fall back to GET /orders/items if not."""
+		response = requests.get(
+			f"{API_BASE_URL}/orders/items",
+			headers=self._headers(),
+			params={"order_id": order_id},
+			timeout=REQUEST_TIMEOUT,
+		)
+		response.raise_for_status()
+		return response.json().get("data", [])
+
+	def register_webhooks(self, url: str, events: list[str]) -> list[str]:
+		"""Subscribe `url` to `events`, skipping ones already subscribed to this url.
+
+		Uses Salla's signature strategy so deliveries carry X-Salla-Signature, which is
+		HMAC-SHA256(webhook_secret, raw_body) - exactly what verify_webhook_signature checks.
+		"""
+		secret = self.channel.get_password("webhook_secret", raise_exception=False)
+		if not secret:
+			frappe.throw(f"Set a Webhook Secret on Marketplace Channel {self.channel.name} first.")
+
+		existing = requests.get(f"{API_BASE_URL}/webhooks", headers=self._headers(), timeout=REQUEST_TIMEOUT)
+		existing.raise_for_status()
+		already = {(w.get("event"), w.get("url")) for w in existing.json().get("data", [])}
+
+		registered = []
+		for event in events:
+			if (event, url) in already:
+				continue
+			response = requests.post(
+				f"{API_BASE_URL}/webhooks/subscribe",
+				headers=self._headers(),
+				json={
+					"name": f"ERPNext {event}",
+					"event": event,
+					"url": url,
+					"version": 2,
+					"security_strategy": "signature",
+					"secret": secret,
+				},
+				timeout=REQUEST_TIMEOUT,
+			)
+			if not response.ok:
+				frappe.throw(f"Salla rejected webhook {event}: {response.status_code} {response.text[:300]}")
+			registered.append(event)
+		return registered
