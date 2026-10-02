@@ -5,6 +5,10 @@ import frappe
 
 def process_webhook_log(log_name: str) -> None:
 	"""Turn one logged, signature-verified webhook into ERPNext changes (background job)."""
+	# The webhook endpoint is allow_guest, so the queued job inherits the Guest user,
+	# which can't read Items/Customers. The signature was already verified before
+	# this job was enqueued, so run the ERPNext side as Administrator.
+	frappe.set_user("Administrator")
 	log = frappe.get_doc("Marketplace Webhook Log", log_name)
 	if log.processed or not log.signature_valid:
 		return
@@ -82,6 +86,10 @@ def _resolve_item(channel_name: str, line: dict) -> str | None:
 		rows = frappe.get_all("Marketplace Item Map", filters={**base, "channel_product_id": str(product_id)}, pluck="item_code")
 		if len(rows) == 1:
 			return rows[0]
+	# Simple (variant-less) products arrive with only the SKU on the line.
+	sku = line.get("sku")
+	if sku:
+		return frappe.db.get_value("Marketplace Item Map", {**base, "channel_sku": sku}, "item_code")
 	return None
 
 
