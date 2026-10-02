@@ -134,3 +134,12 @@ def register_webhooks(channel: str):
 	) + "?" + urlencode({"channel": doc.name})
 	registered = get_connector(doc).register_webhooks(url, ["order.created", "order.updated", "order.cancelled"])
 	return {"url": url, "registered": registered}
+
+
+@frappe.whitelist()
+def import_products(channel: str):
+	"""Create ERPNext Items + Marketplace Item Map rows for the channel's catalog."""
+	frappe.only_for("System Manager")
+	from .catalog import import_products as run
+
+	return run(channel)

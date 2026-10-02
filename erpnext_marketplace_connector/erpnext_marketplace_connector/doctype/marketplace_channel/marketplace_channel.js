@@ -27,6 +27,25 @@ frappe.ui.form.on("Marketplace Channel", {
 					},
 				});
 			});
+
+			frm.add_custom_button(__("Import Products"), () => {
+				frappe.confirm(__("Create ERPNext Items and item mappings for every product on this Salla store?"), () => {
+					frappe.call({
+						method: "erpnext_marketplace_connector.erpnext_marketplace_connector.api.import_products",
+						args: { channel: frm.doc.name },
+						freeze: true,
+						freeze_message: __("Importing products..."),
+						callback: (r) => {
+							const m = r.message;
+							frappe.msgprint({
+								title: __("Products imported"),
+								message: __("{0} items created, {1} mappings created, {2} already mapped.", [m.items_created, m.maps_created, m.skipped]),
+								indicator: "green",
+							});
+						},
+					});
+				});
+			});
 		}
 	},
 

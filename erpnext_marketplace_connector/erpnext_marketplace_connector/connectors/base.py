@@ -72,6 +72,11 @@ class BaseConnector:
 		"""Validate an inbound webhook against this channel's webhook secret."""
 		raise NotImplementedError
 
+	def fetch_catalog(self) -> list[dict]:
+		"""Return every sellable variant on the channel as dicts with keys:
+		product_id, variant_id, sku, name, price, stock_qty (None = unlimited/unknown)."""
+		raise NotImplementedError
+
 	def fetch_order_items(self, order_id) -> list[dict]:
 		"""Return the line items of one order, when a webhook payload doesn't include them."""
 		raise NotImplementedError

@@ -208,6 +208,44 @@ class SallaConnector(BaseConnector):
 		expected = hmac.new(secret.encode(), request_body, hashlib.sha256).hexdigest()
 		return hmac.compare_digest(expected, signature_header)
 
+	def fetch_catalog(self) -> list[dict]:
+		"""Walk GET /products (paginated); each product's `skus` are its variants."""
+		variants = []
+		page = 1
+		while True:
+			response = requests.get(
+				f"{API_BASE_URL}/products",
+				headers=self._headers(),
+				params={"per_page": 50, "page": page},
+				timeout=REQUEST_TIMEOUT,
+			)
+			response.raise_for_status()
+			body = response.json()
+			for product in body.get("data", []):
+				option_values = {
+					value["id"]: value.get("name")
+					for option in product.get("options") or []
+					for value in option.get("values") or []
+				}
+				skus = product.get("skus") or []
+				for sku in skus:
+					labels = [option_values.get(v) for v in sku.get("related_option_values") or []]
+					name = " - ".join([product.get("name") or "", *[label for label in labels if label]])
+					variants.append(
+						{
+							"product_id": product["id"],
+							"variant_id": sku["id"],
+							"sku": sku.get("sku") or product.get("sku"),
+							"name": name,
+							"price": float((sku.get("price") or {}).get("amount") or 0),
+							"stock_qty": None if sku.get("unlimited_quantity") else sku.get("stock_quantity"),
+						}
+					)
+			pagination = body.get("pagination") or {}
+			if page >= (pagination.get("totalPages") or 1):
+				return variants
+			page += 1
+
 	def fetch_order_items(self, order_id) -> list[dict]:
 		"""Webhook payloads normally carry items; fall back to GET /orders/items if not."""
 		response = requests.get(
