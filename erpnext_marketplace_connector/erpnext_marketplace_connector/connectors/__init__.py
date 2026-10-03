@@ -15,8 +15,9 @@ CONNECTORS = {
 }
 
 
-def get_connector(channel: Document) -> BaseConnector:
-	connector_class = CONNECTORS.get(channel.platform)
+def get_connector(store: Document) -> BaseConnector:
+	platform = frappe.db.get_value("Marketplace Channel", store.marketplace_channel, "platform")
+	connector_class = CONNECTORS.get(platform)
 	if not connector_class:
-		frappe.throw(f"No connector implemented for platform {channel.platform}")
-	return connector_class(channel)
+		frappe.throw(f"No connector implemented for platform {platform}")
+	return connector_class(store)

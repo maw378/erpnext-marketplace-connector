@@ -1,70 +1,69 @@
 # Client onboarding: Salla stores on a client site
 
-One client = one ERPNext site (e.g. `client1.zainzone.net`), standard or AI-enhanced.
-One Salla private app per client site. One Marketplace Channel per Salla store.
+Model: one client = one ERPNext site (e.g. `client1.zainzone.net`), standard or AI-enhanced.
+- **Marketplace Channel** = the master. One per platform per client site. Holds the Salla app's Client ID/Secret, the Webhook Secret and the ERPNext defaults (warehouse, price list, customer, tax template).
+- **Marketplace Store** = the detail. One per Salla store. Holds the store's name, URL, status, cost, OAuth token and optional overrides of the channel defaults.
+- **One webhook URL for every store:** `https://<site>/api/method/erpnext_marketplace_connector.erpnext_marketplace_connector.api.webhook`. The store is identified from the store ID Salla puts in each payload (`merchant`); the channel's Webhook Secret verifies the signature.
 
 ## 0. Before you start
 - [ ] Site name decided (`<client>.zainzone.net`) and variant chosen (standard / AI-enhanced).
-- [ ] List of the client's Salla store URLs (`https://demostore.salla.sa/dev-...` or their real domain) and which ERPNext company each store sells under.
-- [ ] Client's seller legal data: VAT number and national address (street, building no., district, city, postal code) for each company.
+- [ ] The client's Salla store URLs, and which ERPNext company each store sells under.
+- [ ] Seller legal data per company: VAT number and national address (street, building no., district, city, postal code).
 
 ## 1. ERPNext site
-- [ ] Site created with these apps installed: `erpnext`, `zatca_integration`, `erpnext_howto_assistant`, `erpnext_marketplace_connector` (+ `erpnext_ai_dashboards` for AI-enhanced). `bench migrate` ran clean.
-- [ ] Check the Contact table has the column `is_billing_contact` (Custom Field `Contact-is_billing_contact`). If missing, run `erpnext.setup.install.create_address_and_contact_custom_fields`. Without it, Sales Orders from Salla fail.
+- [ ] Apps installed: `erpnext`, `zatca_integration`, `erpnext_howto_assistant`, `erpnext_marketplace_connector` (+ `erpnext_ai_dashboards` for AI-enhanced). `bench migrate` ran clean.
+- [ ] Contact has the column `is_billing_contact` (Custom Field `Contact-is_billing_contact`). If missing run `erpnext.setup.install.create_address_and_contact_custom_fields`; without it Sales Orders from Salla fail.
 - [ ] Companies created; seller VAT number and national address filled in on each (the Saudi Tax Invoice shows a red "Legal data incomplete" banner until they are).
-- [ ] Per store: a Warehouse, a Price List, a Sales Taxes and Charges Template (VAT 15%) for that company.
-- [ ] A customer named `Salla Customer` (group Individual). It is the Default Customer for Salla orders.
+- [ ] A Warehouse, Price List and Sales Taxes and Charges Template (VAT 15%) per company.
+- [ ] A customer `Salla Customer` (group Individual).
 
 ## 2. Salla Partners portal: the app (once per client site)
-- [ ] Create a **Private App**, named with the client, e.g. `ZZ - client1`.
+- [ ] Create a **Private App** named with the client, e.g. `ZZ - client1`.
 - [ ] OAuth callback URL: `https://<client>.zainzone.net/api/method/erpnext_marketplace_connector.erpnext_marketplace_connector.api.oauth_callback`
 - [ ] Scopes: `settings.read`, `customers.read`, `orders.read`, `products.read_write`, `webhooks.read_write`, `offline_access`.
-- [ ] Leave the app-level **Webhook URL** blank. The per-store webhooks are registered by the connector and carry the right channel name. (The app-level URL receives every store's events but names only one channel.)
-- [ ] Save the **Client ID** and **Client Secret** somewhere private. Never commit them.
+- [ ] Leave the app-level Webhook URL blank (the connector registers the webhooks on each store).
+- [ ] Save the **Client ID** and **Client Secret** privately. Never commit them.
 
-## 3. Salla Partners portal: store access (once per store)
-- [ ] Demo/test store: install the app from the app's test options.
-- [ ] Real store: publish the app, then Partners > My Apps > the app > Stores > **Request Store Access** with the store URL; the store manager approves. Check what publishing locks (e.g. callback URL) before you publish.
+## 3. Marketplace Channel (once per client site)
+- [ ] Channel Name (e.g. `Salla`), Platform Salla, Enabled.
+- [ ] API Key = Client ID, API Secret = Client Secret.
+- [ ] Webhook Secret: a long random string (shared by all stores of this channel).
+- [ ] Defaults for all stores: Warehouse, Price List, Customer Group `Individual`, Default Customer `Salla Customer`, Tax Template.
 
-## 4. Marketplace Channel (once per store, in ERPNext)
-Create a Marketplace Channel:
-- [ ] Channel Name: unique, e.g. `Salla - Main Store`. **The name appears in the webhook URL and must match exactly.**
-- [ ] Platform Salla, Enabled, Store URL = that store's URL.
-- [ ] API Key = Client ID; API Secret = Client Secret (the same pair for every store of this client).
-- [ ] Webhook Secret: any long random string (the connector registers it with Salla).
-- [ ] Warehouse (belongs to the right company), Price List, Customer Group `Individual`, Default Customer `Salla Customer`, Tax Template.
-- [ ] Save, then click **Connect to Salla** while signed in as that store's manager. You return with "Connected to Salla successfully".
-- [ ] Click **Register Webhooks**: expect `order.created, order.updated, order.cancelled` (or "nothing new" if already done).
-- [ ] Click **Import Products**: creates an Item and an Item Map per Salla variant. Safe to re-run.
-- [ ] Post opening stock for items that will be sold (the import creates items with stock tracking and zero stock; draft Sales Orders work without it, submitting needs stock).
+## 4. Marketplace Store (once per Salla store)
+Open the channel and click **Add Store** (or create a Marketplace Store and pick the channel).
+- [ ] Store Name (unique, e.g. `Salla - Main Store`), Store URL, Status, Cost (informational).
+- [ ] Only if this store differs from the channel defaults: its own Warehouse / Price List / Customer / Tax Template.
+- [ ] Give the app access to the store: demo/test store, install the app from the app's test options. Real store, publish the app, then Partners > My Apps > the app > Stores > **Request Store Access** with the store URL; the manager approves. Check what publishing locks (e.g. the callback URL) first.
+- [ ] Save the store, then click **Connect to Salla** signed in as that store's manager. You return with "Connected to Salla successfully" and **Store ID** is filled in. (If Store ID stays empty, click **Refresh Store ID**.)
+- [ ] Click **Register Webhooks**: expect `order.created, order.updated, order.cancelled` (or "nothing new"). It also removes older subscriptions of this site's endpoint in the `?channel=` form so events do not arrive twice.
+- [ ] Click **Import Products** (Items + Item Maps for this store; safe to re-run).
+- [ ] Post opening stock for items that will be sold (the import creates stock items with zero stock; draft Sales Orders work without it, submitting needs stock).
 
 ## 5. Test
-- [ ] Place or edit an order on the Salla store.
-- [ ] Marketplace Webhook Log: new `order.created` row, Signature Valid ticked, error empty.
-- [ ] A draft Sales Order exists with PO number `<Channel Name>-<order number>` and its **Marketplace Channel** field set, the right company and items.
+- [ ] Place or edit an order on the store.
+- [ ] Marketplace Webhook Log: a new `order.created` row, Marketplace Store set, Signature Valid ticked, error empty.
+- [ ] A draft Sales Order with PO number `<Store Name>-<order number>` and its **Marketplace Store** field set.
 - [ ] Changing the order's status adds a comment to the same Sales Order; cancelling it removes the draft.
-- [ ] Print an invoice: the Saudi Tax Invoice shows seller details and a reserved QR box (the QR fills in after ZATCA clearance).
+- [ ] Print an invoice: the Saudi Tax Invoice shows seller details and a reserved QR box (filled after ZATCA clearance).
 
 ## Several stores on one site
-Each store is its own channel; nothing is shared except what you choose to (items with the same SKU, the `Salla Customer`).
-- Connecting a channel stores the store's Salla ID in **Store ID**. After that, a webhook whose store does not match the channel is logged as `Ignored: webhook is from store ...` and creates nothing. Channels connected before this existed have no Store ID and accept everything; reconnect them to switch the check on.
-- Sales Orders carry the **Marketplace Channel** they came from (filter on it in the list). Duplicate detection and updates are per channel, and the PO number includes the channel name, so two stores with the same order number cannot clash.
-- Each channel needs its own Item Maps: run **Import Products** on every channel.
-- A single store keeps working exactly as before. The checks only matter once a second channel exists.
+- Add another Marketplace Store under the same channel: no new credentials, secret or URL. Connect, Register Webhooks, Import Products.
+- Item maps, Sales Order duplicate detection and PO numbers are per store, so two stores with the same order number stay separate.
+- A webhook for a store ID that no store has is answered with 404 and ignored.
 
 ## 6. Troubleshooting
 | Symptom | Likely cause |
 |---|---|
-| No webhook log rows at all | Order is on a different store than the one the token belongs to; or webhooks not registered. Re-run Connect, then Register Webhooks. |
-| Request answered 404, nothing logged | Channel name in the webhook URL does not match a channel on that site (check spaces and hyphens). |
-| Log shows `signature_valid` 0 / HTTP 401 | Webhook Secret on the channel differs from the secret the webhook was registered with. Re-register. |
-| "Set Default Customer on Marketplace Channel ..." | Default Customer empty on the channel. |
-| "No Marketplace Item Map for: ..." | Run Import Products; the order's variant is not mapped yet. |
-| `Unknown column 'tabContact.is_billing_contact'` | See step 1: Contact custom field missing. |
+| No webhook log rows | The order is on a store this site has no token for, or Register Webhooks was not run for that store. |
+| Request answered 404, nothing logged | No enabled store has that Store ID. Connect the store (or Refresh Store ID). With the old `?channel=` form: the name does not match a store or a single-store channel. |
+| Log has `signature_valid` 0 / HTTP 401 | Webhook Secret on the channel differs from the secret the webhook was registered with. Register Webhooks again. |
+| "Set Default Customer on Marketplace Store ..." | No Default Customer on the store or its channel. |
+| "No Marketplace Item Map for: ..." | Run Import Products on that store. |
+| `Unknown column 'tabContact.is_billing_contact'` | See step 1. |
 | Log has an empty error and no Sales Order | Check ERPNext Error Log for `Marketplace webhook <name> failed`. |
-| Log says `Ignored: webhook is from store ...` | The webhook belongs to another store than this channel's Store ID: a URL registered with the wrong channel name, or the app-level webhook field. Fix the URL, or reconnect the channel if its Store ID is wrong. |
 | Failed log does not retry | Expected. Trigger a new event (change the order's status) after fixing the cause. |
 
 ## Still open for every client
-- Tax Template per channel decides whether Salla orders carry VAT.
+- The Tax Template decides whether Salla orders carry VAT.
 - ZATCA clearance needs the client's own simulation/production credentials; the QR appears on the invoice only after clearance.

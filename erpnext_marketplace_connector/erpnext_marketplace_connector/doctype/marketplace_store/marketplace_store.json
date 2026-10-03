@@ -1,0 +1,262 @@
+{
+ "actions": [],
+ "autoname": "field:store_name",
+ "creation": "2026-09-30 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-09-30 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "ERPNext Marketplace Connector",
+ "name": "Marketplace Store",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1,
+ "fields": [
+  {
+   "fieldname": "store_name",
+   "fieldtype": "Data",
+   "label": "Store Name",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1,
+   "description": "A unique name for this store, e.g. \"Salla - Main Store\"."
+  },
+  {
+   "fieldname": "marketplace_channel",
+   "fieldtype": "Link",
+   "label": "Marketplace Channel",
+   "options": "Marketplace Channel",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "description": "The platform account (client ID/secret, webhook secret) this store belongs to."
+  },
+  {
+   "fieldname": "platform",
+   "fieldtype": "Data",
+   "label": "Platform",
+   "fetch_from": "marketplace_channel.platform",
+   "read_only": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "column_break_identity",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enabled",
+   "default": "1",
+   "description": "Turn syncing off for this store without deleting its configuration."
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Active\nPending Access\nSuspended",
+   "default": "Active",
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "store_section",
+   "fieldtype": "Section Break",
+   "label": "Store"
+  },
+  {
+   "fieldname": "store_url",
+   "fieldtype": "Data",
+   "label": "Store URL",
+   "reqd": 1,
+   "description": "Base URL of the store, e.g. https://mystore.salla.sa"
+  },
+  {
+   "fieldname": "store_id",
+   "fieldtype": "Data",
+   "label": "Store ID",
+   "read_only": 1,
+   "in_list_view": 1,
+   "description": "Filled in when the store connects. Incoming webhooks are routed to the store by this ID."
+  },
+  {
+   "fieldname": "column_break_store",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "subscription_cost",
+   "fieldtype": "Currency",
+   "label": "Cost",
+   "description": "What the platform charges for this store's app access (informational)."
+  },
+  {
+   "fieldname": "mapping_section",
+   "fieldtype": "Section Break",
+   "label": "ERPNext Mapping (optional overrides)",
+   "description": "Leave empty to use the defaults on the Marketplace Channel."
+  },
+  {
+   "fieldname": "warehouse",
+   "fieldtype": "Link",
+   "label": "Warehouse",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "price_list",
+   "fieldtype": "Link",
+   "label": "Price List",
+   "options": "Price List"
+  },
+  {
+   "fieldname": "column_break_mapping",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "default_customer",
+   "fieldtype": "Link",
+   "label": "Default Customer",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "customer_group",
+   "fieldtype": "Link",
+   "label": "Customer Group",
+   "options": "Customer Group"
+  },
+  {
+   "fieldname": "tax_template",
+   "fieldtype": "Link",
+   "label": "Sales Taxes and Charges Template",
+   "options": "Sales Taxes and Charges Template"
+  },
+  {
+   "fieldname": "oauth_section",
+   "fieldtype": "Section Break",
+   "label": "OAuth State",
+   "collapsible": 1,
+   "description": "Filled in automatically when the store connects. Not usually edited by hand."
+  },
+  {
+   "fieldname": "access_token",
+   "fieldtype": "Password",
+   "label": "Access Token",
+   "read_only": 1
+  },
+  {
+   "fieldname": "refresh_token",
+   "fieldtype": "Password",
+   "label": "Refresh Token",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_oauth",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "token_expires_at",
+   "fieldtype": "Datetime",
+   "label": "Access Token Expires At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sync_section",
+   "fieldtype": "Section Break",
+   "label": "Sync",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "sync_status",
+   "fieldtype": "Select",
+   "label": "Sync Status",
+   "options": "Idle\nSyncing\nError",
+   "default": "Idle",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_synced_orders",
+   "fieldtype": "Datetime",
+   "label": "Last Synced (Orders)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_sync",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "last_synced_stock",
+   "fieldtype": "Datetime",
+   "label": "Last Synced (Stock)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_sync_error",
+   "fieldtype": "Small Text",
+   "label": "Last Sync Error",
+   "read_only": 1
+  },
+  {
+   "fieldname": "notes_section",
+   "fieldtype": "Section Break",
+   "label": "Notes",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "field_order": [
+  "store_name",
+  "marketplace_channel",
+  "platform",
+  "column_break_identity",
+  "enabled",
+  "status",
+  "store_section",
+  "store_url",
+  "store_id",
+  "column_break_store",
+  "subscription_cost",
+  "mapping_section",
+  "warehouse",
+  "price_list",
+  "column_break_mapping",
+  "default_customer",
+  "customer_group",
+  "tax_template",
+  "oauth_section",
+  "access_token",
+  "refresh_token",
+  "column_break_oauth",
+  "token_expires_at",
+  "sync_section",
+  "sync_status",
+  "last_synced_orders",
+  "column_break_sync",
+  "last_synced_stock",
+  "last_sync_error",
+  "notes_section",
+  "notes"
+ ],
+ "title_field": "store_name",
+ "search_fields": "store_url,marketplace_channel"
+}

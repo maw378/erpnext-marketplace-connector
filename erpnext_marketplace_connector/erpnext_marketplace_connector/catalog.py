@@ -5,19 +5,19 @@ from .connectors import get_connector
 ITEM_GROUP = "Salla Products"
 
 
-def import_products(channel_name: str) -> dict:
-	"""Pull the channel's catalog and create an Item + Marketplace Item Map per variant.
+def import_products(store_name: str) -> dict:
+	"""Pull the store's catalog and create an Item + Marketplace Item Map per variant.
 
 	Safe to re-run: variants that already have a map row are skipped. Stock is not
 	touched - post opening stock separately if the ERPNext side should track it.
 	Also runnable from a bench console / `bench execute` (see README of the deploy).
 	"""
-	channel = frappe.get_doc("Marketplace Channel", channel_name)
-	variants = get_connector(channel).fetch_catalog()
+	store = frappe.get_doc("Marketplace Store", store_name)
+	variants = get_connector(store).fetch_catalog()
 	_ensure_item_group()
 
 	mapped = set(
-		frappe.get_all("Marketplace Item Map", {"marketplace_channel": channel.name}, pluck="channel_variant_id")
+		frappe.get_all("Marketplace Item Map", {"marketplace_store": store.name}, pluck="channel_variant_id")
 	)
 	sku_count = {}
 	for variant in variants:
@@ -52,7 +52,7 @@ def import_products(channel_name: str) -> dict:
 		frappe.get_doc(
 			{
 				"doctype": "Marketplace Item Map",
-				"marketplace_channel": channel.name,
+				"marketplace_store": store.name,
 				"item_code": item_code,
 				"channel_sku": item_code,
 				"channel_product_id": str(variant["product_id"]),

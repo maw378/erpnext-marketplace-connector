@@ -6,6 +6,7 @@
  "engine": "InnoDB",
  "field_order": [
   "marketplace_channel",
+  "marketplace_store",
   "event",
   "column_break_log",
   "received_at",
@@ -23,7 +24,6 @@
    "fieldtype": "Link",
    "label": "Marketplace Channel",
    "options": "Marketplace Channel",
-   "reqd": 1,
    "in_list_view": 1,
    "in_standard_filter": 1
   },
@@ -94,6 +94,14 @@
    "fieldtype": "Code",
    "options": "JSON",
    "label": "Raw Payload"
+  },
+  {
+   "fieldname": "marketplace_store",
+   "fieldtype": "Link",
+   "label": "Marketplace Store",
+   "options": "Marketplace Store",
+   "in_list_view": 1,
+   "in_standard_filter": 1
   }
  ],
  "index_web_pages_for_search": 1,

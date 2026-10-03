@@ -52,10 +52,10 @@ class SallaConnector(BaseConnector):
 		self.save_tokens(data["access_token"], data.get("refresh_token"), data.get("expires_in"))
 
 	def refresh_access_token(self) -> None:
-		refresh_token = self.channel.get_password("refresh_token", raise_exception=False)
+		refresh_token = self.store.get_password("refresh_token", raise_exception=False)
 		if not refresh_token:
 			frappe.throw(
-				f"Marketplace Channel {self.channel.name} has no refresh token yet - "
+				f"Marketplace Store {self.store.name} has no refresh token yet - "
 				"use the Connect to Salla button to complete the OAuth authorization flow first."
 			)
 		response = requests.post(
@@ -73,8 +73,8 @@ class SallaConnector(BaseConnector):
 		self.save_tokens(data["access_token"], data.get("refresh_token"), data.get("expires_in"))
 
 	def get_access_token(self) -> str:
-		expires_at = self.channel.token_expires_at
-		current_token = self.channel.get_password("access_token", raise_exception=False)
+		expires_at = self.store.token_expires_at
+		current_token = self.store.get_password("access_token", raise_exception=False)
 		token_missing_or_stale = (
 			not current_token
 			or not expires_at
@@ -82,7 +82,7 @@ class SallaConnector(BaseConnector):
 		)
 		if token_missing_or_stale:
 			self.refresh_access_token()
-			current_token = self.channel.get_password("access_token", raise_exception=False)
+			current_token = self.store.get_password("access_token", raise_exception=False)
 		return current_token
 
 	def _headers(self) -> dict:
@@ -96,8 +96,8 @@ class SallaConnector(BaseConnector):
 		backstop; order.created/order.updated webhooks are the primary sync path.
 		"""
 		params = {"per_page": 60}
-		if self.channel.last_synced_orders:
-			params["from_date"] = frappe.utils.get_datetime(self.channel.last_synced_orders).strftime("%Y-%m-%d")
+		if self.store.last_synced_orders:
+			params["from_date"] = frappe.utils.get_datetime(self.store.last_synced_orders).strftime("%Y-%m-%d")
 
 		orders = []
 		page = 1
@@ -117,7 +117,7 @@ class SallaConnector(BaseConnector):
 				break
 			page += 1
 
-		self.channel.db_set("last_synced_orders", frappe.utils.now_datetime(), update_modified=False)
+		self.store.db_set("last_synced_orders", frappe.utils.now_datetime(), update_modified=False)
 		frappe.db.commit()
 		return orders
 
@@ -132,7 +132,7 @@ class SallaConnector(BaseConnector):
 		item_maps = frappe.get_all(
 			"Marketplace Item Map",
 			filters={
-				"marketplace_channel": self.channel.name,
+				"marketplace_store": self.store.name,
 				"item_code": ["in", list(item_code_to_qty)],
 				"enabled": 1,
 			},
@@ -165,7 +165,7 @@ class SallaConnector(BaseConnector):
 			timeout=REQUEST_TIMEOUT,
 		)
 		response.raise_for_status()
-		self.channel.db_set("last_synced_stock", frappe.utils.now_datetime(), update_modified=False)
+		self.store.db_set("last_synced_stock", frappe.utils.now_datetime(), update_modified=False)
 		frappe.db.commit()
 
 	def push_prices(self, item_code_to_rate: dict[str, float]) -> None:
@@ -180,7 +180,7 @@ class SallaConnector(BaseConnector):
 		item_maps = frappe.get_all(
 			"Marketplace Item Map",
 			filters={
-				"marketplace_channel": self.channel.name,
+				"marketplace_store": self.store.name,
 				"item_code": ["in", list(item_code_to_rate)],
 				"enabled": 1,
 			},
@@ -263,8 +263,11 @@ class SallaConnector(BaseConnector):
 		response.raise_for_status()
 		return response.json().get("data", [])
 
-	def register_webhooks(self, url: str, events: list[str]) -> list[str]:
+	def register_webhooks(self, url: str, events: list[str]) -> dict:
 		"""Subscribe `url` to `events`, skipping ones already subscribed to this url.
+
+		Returns {"registered": [...events newly subscribed], "removed": [...events whose
+		older subscription to this same endpoint, e.g. the `?channel=` form, was deleted]}.
 
 		Uses Salla's signature strategy so deliveries carry X-Salla-Signature, which is
 		HMAC-SHA256(webhook_secret, raw_body) - exactly what verify_webhook_signature checks.
@@ -275,7 +278,8 @@ class SallaConnector(BaseConnector):
 
 		existing = requests.get(f"{API_BASE_URL}/webhooks", headers=self._headers(), timeout=REQUEST_TIMEOUT)
 		existing.raise_for_status()
-		already = {(w.get("event"), w.get("url")) for w in existing.json().get("data", [])}
+		subscriptions = existing.json().get("data", [])
+		already = {(w.get("event"), w.get("url")) for w in subscriptions}
 
 		registered = []
 		for event in events:
@@ -297,4 +301,14 @@ class SallaConnector(BaseConnector):
 			if not response.ok:
 				frappe.throw(f"Salla rejected webhook {event}: {response.status_code} {response.text[:300]}")
 			registered.append(event)
-		return registered
+
+		# Older subscriptions to this same endpoint (same URL without/with a different query
+		# string) would deliver every event twice. Only this site's own endpoint is touched.
+		endpoint = url.split("?")[0]
+		removed = []
+		for w in subscriptions:
+			if w.get("event") in events and (w.get("url") or "").split("?")[0] == endpoint and w.get("url") != url:
+				response = requests.delete(f"{API_BASE_URL}/webhooks/{w['id']}", headers=self._headers(), timeout=REQUEST_TIMEOUT)
+				if response.ok:
+					removed.append(w["event"])
+		return {"registered": registered, "removed": removed}

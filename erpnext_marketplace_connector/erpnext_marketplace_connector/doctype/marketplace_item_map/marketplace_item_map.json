@@ -1,10 +1,11 @@
 {
  "actions": [],
- "autoname": "format:{marketplace_channel}-{channel_sku}",
+ "autoname": "format:{marketplace_store}-{channel_sku}",
  "creation": "2026-09-30 00:00:00.000000",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "marketplace_store",
   "marketplace_channel",
   "item_code",
   "column_break_map",
@@ -19,9 +20,10 @@
    "fieldtype": "Link",
    "label": "Marketplace Channel",
    "options": "Marketplace Channel",
-   "reqd": 1,
    "in_list_view": 1,
-   "in_standard_filter": 1
+   "in_standard_filter": 1,
+   "read_only": 1,
+   "fetch_from": "marketplace_store.marketplace_channel"
   },
   {
    "fieldname": "item_code",
@@ -59,6 +61,15 @@
    "fieldtype": "Check",
    "label": "Enabled",
    "in_list_view": 1
+  },
+  {
+   "fieldname": "marketplace_store",
+   "fieldtype": "Link",
+   "label": "Marketplace Store",
+   "options": "Marketplace Store",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
   }
  ],
  "index_web_pages_for_search": 1,

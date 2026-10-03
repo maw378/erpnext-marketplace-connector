@@ -35,28 +35,29 @@ def process_webhook_log(log_name: str) -> None:
 def _process_order_event(log, event: str, order: dict) -> None:
 	from .connectors import get_connector
 
-	channel = frappe.get_doc("Marketplace Channel", log.marketplace_channel)
+	store = frappe.get_doc("Marketplace Store", log.marketplace_store)
+	platform = frappe.db.get_value("Marketplace Channel", store.marketplace_channel, "platform")
 	reference = str(order.get("reference_id") or order.get("id") or "")
 	if not reference:
 		frappe.throw("Order payload has neither reference_id nor id")
 	log.db_set("order_reference", reference)
-	# Channel name, not just platform: ERPNext rejects two Sales Orders with the same
+	# Store name, not just platform: ERPNext rejects two Sales Orders with the same
 	# customer + PO number, and two stores can share an order number and a default
 	# customer. `legacy_po_no` is the format used before multi-store support.
-	po_no = f"{channel.name}-{reference}"
-	legacy_po_no = f"{channel.platform}-{reference}"
+	po_no = f"{store.name}-{reference}"
+	legacy_po_no = f"{platform}-{reference}"
 
 	status_slug = ((order.get("status") or {}).get("slug") or "").lower()
-	# Per channel, so two stores that share an order number stay separate.
+	# Per store, so two stores that share an order number stay separate.
 	# Untagged orders (the patch tags them from their webhook logs; this covers any it
-	# could not) are only attributed to a channel when the site has a single one.
-	only_channel = frappe.db.count("Marketplace Channel", {"platform": channel.platform}) == 1
+	# could not) are only attributed to a store when the site has a single one.
+	only_store = frappe.db.count("Marketplace Store", {"platform": platform}) == 1
 	existing = frappe.db.get_value(
 		"Sales Order",
 		{
 			"po_no": ["in", [po_no, legacy_po_no]],
 			"docstatus": ["<", 2],
-			"marketplace_channel": ["in", [channel.name, ""] if only_channel else [channel.name]],
+			"marketplace_store": ["in", [store.name, ""] if only_store else [store.name]],
 		},
 		"name",
 	)
@@ -83,16 +84,16 @@ def _process_order_event(log, event: str, order: dict) -> None:
 
 	items = order.get("items")
 	if not items:
-		items = get_connector(channel).fetch_order_items(order.get("id"))
-	so = _create_sales_order(channel, order, items, po_no)
+		items = get_connector(store).fetch_order_items(order.get("id"))
+	so = _create_sales_order(store, order, items, po_no)
 	log.db_set("sales_order", so.name)
 
 
-def _resolve_item(channel_name: str, line: dict) -> str | None:
+def _resolve_item(store_name: str, line: dict) -> str | None:
 	"""Match a Salla order line to an ERPNext Item via Marketplace Item Map."""
 	variant_id = line.get("product_sku_id") or line.get("variant_id")
 	product_id = line.get("product_id") or (line.get("product") or {}).get("id")
-	base = {"marketplace_channel": channel_name, "enabled": 1}
+	base = {"marketplace_store": store_name, "enabled": 1}
 	if variant_id:
 		hit = frappe.db.get_value("Marketplace Item Map", {**base, "channel_variant_id": str(variant_id)}, "item_code")
 		if hit:
@@ -115,13 +116,15 @@ def _amount(value) -> float:
 	return float(value or 0)
 
 
-def _create_sales_order(channel, order: dict, items: list[dict], po_no: str):
-	if not channel.default_customer:
-		frappe.throw(f"Set Default Customer on Marketplace Channel {channel.name}")
+def _create_sales_order(store, order: dict, items: list[dict], po_no: str):
+	default_customer = store.get_setting("default_customer")
+	if not default_customer:
+		frappe.throw(f"Set Default Customer on Marketplace Store {store.name} (or on its Marketplace Channel)")
+	warehouse = store.get_setting("warehouse")
 
 	lines, unmapped = [], []
 	for line in items:
-		item_code = _resolve_item(channel.name, line)
+		item_code = _resolve_item(store.name, line)
 		if not item_code:
 			unmapped.append(f"{line.get('sku') or line.get('name')} (product {line.get('product_id')}, variant {line.get('product_sku_id')})")
 			continue
@@ -130,29 +133,30 @@ def _create_sales_order(channel, order: dict, items: list[dict], po_no: str):
 				"item_code": item_code,
 				"qty": line.get("quantity") or 1,
 				"rate": _amount((line.get("amounts") or {}).get("price_without_tax")),
-				"warehouse": channel.warehouse,
+				"warehouse": warehouse,
 			}
 		)
 	if unmapped:
 		frappe.throw("No Marketplace Item Map for: " + "; ".join(unmapped))
 
-	company = frappe.db.get_value("Warehouse", channel.warehouse, "company") if channel.warehouse else None
+	company = frappe.db.get_value("Warehouse", warehouse, "company") if warehouse else None
 	so = frappe.get_doc(
 		{
 			"doctype": "Sales Order",
 			"company": company,
-			"customer": channel.default_customer,
+			"customer": default_customer,
 			"po_no": po_no,
-			"marketplace_channel": channel.name,
+			"marketplace_store": store.name,
 			"transaction_date": frappe.utils.today(),
 			"delivery_date": frappe.utils.today(),
-			"selling_price_list": channel.price_list or None,
+			"selling_price_list": store.get_setting("price_list") or None,
 			"items": lines,
 		}
 	)
 	# A tax template only applies to its own company; never attach a mismatched one.
-	if channel.tax_template and frappe.db.get_value("Sales Taxes and Charges Template", channel.tax_template, "company") == so.company:
-		so.taxes_and_charges = channel.tax_template
+	tax_template = store.get_setting("tax_template")
+	if tax_template and frappe.db.get_value("Sales Taxes and Charges Template", tax_template, "company") == so.company:
+		so.taxes_and_charges = tax_template
 		so.set_taxes()
 	so.insert(ignore_permissions=True)
 
@@ -164,6 +168,6 @@ def _create_sales_order(channel, order: dict, items: list[dict], po_no: str):
 	)
 	from .connectors import get_connector
 
-	if get_connector(channel).get_setting("auto_submit_sales_orders", False):
+	if get_connector(store).get_setting("auto_submit_sales_orders", False):
 		so.submit()
 	return so

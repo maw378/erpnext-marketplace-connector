@@ -1,6 +1,6 @@
 {
  "charts": [],
- "content": "[{\"id\": \"mc-hdr-1\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Marketplace Connector</b></span>\", \"col\": 12}}, {\"id\": \"mc-sc-1\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Marketplace Channel\", \"col\": 3}}, {\"id\": \"mc-sc-2\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Marketplace Item Map\", \"col\": 3}}, {\"id\": \"mc-sp-1\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"mc-hdr-2\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Documents</b></span>\", \"col\": 12}}, {\"id\": \"mc-card-1\", \"type\": \"card\", \"data\": {\"card_name\": \"Marketplace Connector\", \"col\": 4}}]",
+ "content": "[{\"id\": \"mc-hdr-1\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Marketplace Connector</b></span>\", \"col\": 12}}, {\"id\": \"mc-sc-0\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Marketplace Store\", \"col\": 3}}, {\"id\": \"mc-sc-1\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Marketplace Channel\", \"col\": 3}}, {\"id\": \"mc-sc-2\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Marketplace Item Map\", \"col\": 3}}, {\"id\": \"mc-sp-1\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"mc-hdr-2\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Documents</b></span>\", \"col\": 12}}, {\"id\": \"mc-card-1\", \"type\": \"card\", \"data\": {\"card_name\": \"Marketplace Connector\", \"col\": 4}}]",
  "creation": "2026-09-30 00:00:00.000000",
  "custom_blocks": [],
  "docstatus": 0,
@@ -17,7 +17,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Marketplace Connector",
-   "link_count": 2,
+   "link_count": 3,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
@@ -29,6 +29,17 @@
    "label": "Marketplace Channel",
    "link_count": 0,
    "link_to": "Marketplace Channel",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Marketplace Store",
+   "link_count": 0,
+   "link_to": "Marketplace Store",
    "link_type": "DocType",
    "onboard": 1,
    "type": "Link"
@@ -61,6 +72,12 @@
    "doc_view": "List",
    "label": "Marketplace Channel",
    "link_to": "Marketplace Channel",
+   "type": "DocType"
+  },
+  {
+   "doc_view": "List",
+   "label": "Marketplace Store",
+   "link_to": "Marketplace Store",
    "type": "DocType"
   },
   {

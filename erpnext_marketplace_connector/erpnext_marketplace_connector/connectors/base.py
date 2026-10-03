@@ -7,14 +7,16 @@ from frappe.model.document import Document
 class BaseConnector:
 	"""Interface every platform connector (Shopify, WooCommerce, Salla, Zid, ...) implements.
 
-	A connector is constructed from a Marketplace Channel document and talks to that
-	one platform's API using the credentials stored on it. Nothing here should assume
-	a specific store - dev and production channels are just different Marketplace
-	Channel records using the same connector code.
+	A connector is constructed from a Marketplace Store document. `self.channel` is its
+	Marketplace Channel (the platform account: client ID/secret, webhook secret,
+	connector settings) and `self.store` is the store itself (OAuth tokens, sync
+	state). Dev and production stores are just different Marketplace Store records
+	using the same connector code.
 	"""
 
-	def __init__(self, channel: Document):
-		self.channel = channel
+	def __init__(self, store: Document):
+		self.store = store
+		self.channel = store.channel_doc()
 
 	def get_setting(self, key: str, default=None):
 		"""Read a platform-specific value from the channel's free-form Connector Settings JSON."""
@@ -27,33 +29,33 @@ class BaseConnector:
 		return settings.get(key, default)
 
 	def save_tokens(self, access_token: str, refresh_token: str | None, expires_in: int | None) -> None:
-		"""Persist OAuth tokens onto the channel, without a full document save/validate cycle.
+		"""Persist OAuth tokens onto the store, without a full document save/validate cycle.
 
 		Password fields are only encrypted (into the __Auth table) as a side
 		effect of Document._save_passwords(), which plain db_set() never runs -
 		db_set() alone would silently write the token as plaintext into the
-		Marketplace Channel table. So encrypt explicitly here and only leave
+		Marketplace Store table. So encrypt explicitly here and only leave
 		the masked dummy value in the doc's own column, matching what a normal
 		doc.save() from the Desk form does for api_secret/webhook_secret.
 		"""
 		from frappe.utils.password import set_encrypted_password
 
-		set_encrypted_password(self.channel.doctype, self.channel.name, access_token, "access_token")
-		self.channel.db_set("access_token", "*" * len(access_token), update_modified=False)
+		set_encrypted_password(self.store.doctype, self.store.name, access_token, "access_token")
+		self.store.db_set("access_token", "*" * len(access_token), update_modified=False)
 
 		if refresh_token:
-			set_encrypted_password(self.channel.doctype, self.channel.name, refresh_token, "refresh_token")
-			self.channel.db_set("refresh_token", "*" * len(refresh_token), update_modified=False)
+			set_encrypted_password(self.store.doctype, self.store.name, refresh_token, "refresh_token")
+			self.store.db_set("refresh_token", "*" * len(refresh_token), update_modified=False)
 
 		if expires_in:
 			expires_at = frappe.utils.add_to_date(frappe.utils.now_datetime(), seconds=expires_in)
-			self.channel.db_set("token_expires_at", expires_at, update_modified=False)
+			self.store.db_set("token_expires_at", expires_at, update_modified=False)
 
 		frappe.db.commit()
 
 	def record_sync_error(self, message: str) -> None:
-		self.channel.db_set("sync_status", "Error", update_modified=False)
-		self.channel.db_set("last_sync_error", message, update_modified=False)
+		self.store.db_set("sync_status", "Error", update_modified=False)
+		self.store.db_set("last_sync_error", message, update_modified=False)
 		frappe.db.commit()
 
 	def fetch_new_orders(self) -> list[dict]:
@@ -85,6 +87,9 @@ class BaseConnector:
 		"""Return the line items of one order, when a webhook payload doesn't include them."""
 		raise NotImplementedError
 
-	def register_webhooks(self, url: str, events: list[str]) -> list[str]:
-		"""Subscribe the platform to call `url` for `events`; return the events newly registered."""
+	def register_webhooks(self, url: str, events: list[str]) -> dict:
+		"""Subscribe the platform to call `url` for `events`.
+
+		Returns {"registered": events newly subscribed, "removed": events whose older
+		subscription to the same endpoint was deleted}."""
 		raise NotImplementedError

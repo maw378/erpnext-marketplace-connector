@@ -1,47 +1,74 @@
 import json
-from urllib.parse import urlencode
 
 import frappe
 
 from .connectors import get_connector
 
+API = "erpnext_marketplace_connector.erpnext_marketplace_connector.api"
+WEBHOOK_EVENTS = ["order.created", "order.updated", "order.cancelled"]
+DEFAULT_PLATFORM = "Salla"
 
-def store_matches(channel, payload: dict) -> bool:
-	"""A channel that knows its store id only accepts webhooks from that store.
 
-	Salla puts the store id in `merchant`. Channels without a store id (connected
-	before this check existed, or other platforms) accept everything, as before.
+def store_matches(store, payload: dict) -> bool:
+	"""A store that knows its store id only accepts webhooks from that store.
+
+	Salla puts the store id in `merchant`. Stores without a store id (not connected yet,
+	or platforms without one) accept everything.
 	"""
-	if not channel.get("store_id") or "merchant" not in payload:
+	if not store.get("store_id") or "merchant" not in payload:
 		return True
-	return str(payload["merchant"]) == str(channel.store_id)
+	return str(payload["merchant"]) == str(store.store_id)
 
 
-def _get_channel(channel_name: str):
-	if not frappe.db.exists("Marketplace Channel", channel_name):
-		frappe.throw(f"No Marketplace Channel named {channel_name}", frappe.DoesNotExistError)
-	return frappe.get_doc("Marketplace Channel", channel_name)
+def resolve_store(payload: dict, legacy_name: str | None = None, platform: str = DEFAULT_PLATFORM) -> str | None:
+	"""Find the Marketplace Store an inbound webhook belongs to.
+
+	The payload's store id (`merchant` for Salla) decides, so one URL serves every store.
+	`legacy_name` is the old `?channel=<name>` form that earlier registrations used: it
+	still works, naming either a store or a channel that has exactly one store.
+	"""
+	merchant = payload.get("merchant")
+	if merchant not in (None, ""):
+		name = frappe.db.get_value(
+			"Marketplace Store", {"store_id": str(merchant), "platform": platform, "enabled": 1}, "name"
+		)
+		if name:
+			return name
+	if legacy_name:
+		if frappe.db.exists("Marketplace Store", {"name": legacy_name, "enabled": 1}):
+			return legacy_name
+		stores = frappe.get_all("Marketplace Store", {"marketplace_channel": legacy_name, "enabled": 1}, pluck="name")
+		if len(stores) == 1:
+			return stores[0]
+	return None
+
+
+def _get_store(store_name: str):
+	if not frappe.db.exists("Marketplace Store", store_name):
+		frappe.throw(f"No Marketplace Store named {store_name}", frappe.DoesNotExistError)
+	return frappe.get_doc("Marketplace Store", store_name)
+
+
+def _platform(store) -> str:
+	return frappe.db.get_value("Marketplace Channel", store.marketplace_channel, "platform")
 
 
 @frappe.whitelist()
-def oauth_redirect(channel: str):
-	"""Send the browser to the platform's OAuth authorize page for this channel.
+def oauth_redirect(store: str):
+	"""Send the browser to the platform's OAuth authorize page for this store.
 
-	Used by the "Connect" button on the Marketplace Channel form. Only Salla
-	implements OAuth so far; other platforms can add their own authorize URL
-	builder the same way once their connector needs one.
+	Used by the "Connect" button on the Marketplace Store form. The client ID/secret
+	come from the store's Marketplace Channel. Only Salla implements OAuth so far.
 	"""
-	doc = _get_channel(channel)
+	doc = _get_store(store)
 	frappe.only_for("System Manager")
 
-	if doc.platform != "Salla":
-		frappe.throw(f"OAuth connect isn't implemented for {doc.platform} yet.")
+	if _platform(doc) != "Salla":
+		frappe.throw(f"OAuth connect isn't implemented for {_platform(doc)} yet.")
 
 	connector = get_connector(doc)
-	redirect_uri = frappe.utils.get_url(
-		"/api/method/erpnext_marketplace_connector.erpnext_marketplace_connector.api.oauth_callback"
-	)
-	authorize_url = connector.get_authorize_url(doc.api_key, redirect_uri, state=doc.name)
+	redirect_uri = frappe.utils.get_url(f"/api/method/{API}.oauth_callback")
+	authorize_url = connector.get_authorize_url(connector.channel.api_key, redirect_uri, state=doc.name)
 
 	frappe.local.response["type"] = "redirect"
 	frappe.local.response["location"] = authorize_url
@@ -51,74 +78,90 @@ def oauth_redirect(channel: str):
 def oauth_callback(code: str | None = None, state: str | None = None, error: str | None = None):
 	"""Receives the redirect back from the platform's OAuth consent screen.
 
-	`state` carries the Marketplace Channel name we sent in oauth_redirect.
+	`state` carries the Marketplace Store name we sent in oauth_redirect.
 	This is a simplification appropriate for a small number of internally
-	managed channels (not a public multi-tenant app listing) - it relies on
+	managed stores (not a public multi-tenant app listing) - it relies on
 	the operator already being logged in as System Manager rather than a
 	dedicated CSRF nonce.
 	"""
 	frappe.only_for("System Manager")
 
-	channel_form_url = frappe.utils.get_url(f"/app/marketplace-channel/{state}" if state else "/app/marketplace-channel")
+	store_form_url = frappe.utils.get_url(f"/app/marketplace-store/{state}" if state else "/app/marketplace-store")
 
 	if error or not code or not state:
 		frappe.local.response["type"] = "redirect"
-		frappe.local.response["location"] = f"{channel_form_url}?oauth_error={error or 'missing_code'}"
+		frappe.local.response["location"] = f"{store_form_url}?oauth_error={error or 'missing_code'}"
 		return
 
-	doc = _get_channel(state)
+	doc = _get_store(state)
 	connector = get_connector(doc)
-	redirect_uri = frappe.utils.get_url(
-		"/api/method/erpnext_marketplace_connector.erpnext_marketplace_connector.api.oauth_callback"
-	)
+	redirect_uri = frappe.utils.get_url(f"/api/method/{API}.oauth_callback")
 	connector.exchange_code_for_token(code, redirect_uri)
 	try:
 		store_id = connector.fetch_store_id()
 		if store_id:
 			doc.db_set("store_id", store_id, update_modified=False)
 	except Exception:
-		# Connecting still succeeds; without a store id the webhook store check is just off.
+		# Connecting still succeeds; without a store id webhooks cannot be routed to this
+		# store by id (use Refresh Store ID once the token works).
 		frappe.log_error(title=f"Could not read store id for {doc.name}")
 	doc.db_set("sync_status", "Idle", update_modified=False)
 	doc.db_set("last_sync_error", "", update_modified=False)
 
 	frappe.local.response["type"] = "redirect"
-	frappe.local.response["location"] = f"{channel_form_url}?oauth_connected=1"
+	frappe.local.response["location"] = f"{store_form_url}?oauth_connected=1"
+
+
+@frappe.whitelist()
+def refresh_store_id(store: str):
+	"""Re-read the store id from the platform with the store's current token."""
+	frappe.only_for("System Manager")
+	doc = _get_store(store)
+	store_id = get_connector(doc).fetch_store_id()
+	if not store_id:
+		frappe.throw("The platform did not return a store id for this token.")
+	doc.db_set("store_id", store_id, update_modified=False)
+	return {"store_id": store_id}
 
 
 @frappe.whitelist(allow_guest=True)
-def webhook(channel: str | None = None):
-	"""Generic inbound webhook receiver, shared by every platform.
+def webhook(channel: str | None = None, store: str | None = None):
+	"""Inbound webhook receiver for every store of every platform on this site.
 
-	Each Marketplace Channel gets its own webhook URL by putting its name in
-	the `channel` query param, e.g.:
-	.../api/method/erpnext_marketplace_connector.erpnext_marketplace_connector.api.webhook?channel=Salla+Main-Store
+	One URL for all of them: .../api/method/<this module>.webhook
+	The store is identified from the payload (`merchant` for Salla), the payload is
+	verified with that store's channel's webhook secret, logged to Marketplace Webhook
+	Log, and valid events are handed to a background job (orders.process_webhook_log).
 
-	Verifies the signature using that channel's webhook secret and logs the event
-	to Marketplace Webhook Log. Valid events are then handed to a background job
-	(orders.process_webhook_log) that creates/updates the ERPNext documents.
+	`?channel=<name>` / `?store=<name>` still work for webhooks registered the old way.
 	"""
-	# For JSON deliveries Frappe fills form_dict from the body only, so the channel
-	# name in the URL's query string has to be read from the request itself.
-	channel = channel or frappe.request.args.get("channel")
-	if not channel:
-		frappe.throw("Missing channel", frappe.ValidationError)
-	doc = _get_channel(channel)
-	connector = get_connector(doc)
-
 	request_body = frappe.request.get_data()
-	signature_header = frappe.get_request_header("X-Salla-Signature") or frappe.get_request_header("X-Signature")
-	is_valid = connector.verify_webhook_signature(request_body, signature_header or "")
-
 	try:
 		payload = json.loads(request_body or "{}")
 	except ValueError:
 		payload = {}
+	if not isinstance(payload, dict):
+		payload = {}
+
+	# For JSON deliveries Frappe fills form_dict from the body only, so a name in the
+	# URL's query string has to be read from the request itself.
+	legacy_name = channel or store or frappe.request.args.get("channel") or frappe.request.args.get("store")
+	platform = frappe.request.args.get("platform") or DEFAULT_PLATFORM
+	store_name = resolve_store(payload, legacy_name, platform)
+	if not store_name:
+		frappe.local.response["http_status_code"] = 404
+		return {"ok": False, "error": "unknown store"}
+
+	doc = _get_store(store_name)
+	connector = get_connector(doc)
+	signature_header = frappe.get_request_header("X-Salla-Signature") or frappe.get_request_header("X-Signature")
+	is_valid = connector.verify_webhook_signature(request_body, signature_header or "")
 
 	log = frappe.get_doc(
 		{
 			"doctype": "Marketplace Webhook Log",
-			"marketplace_channel": doc.name,
+			"marketplace_store": doc.name,
+			"marketplace_channel": doc.marketplace_channel,
 			"event": payload.get("event", ""),
 			"signature_valid": 1 if is_valid else 0,
 			"payload": frappe.as_json(payload),
@@ -128,7 +171,7 @@ def webhook(channel: str | None = None):
 	frappe.db.commit()
 
 	if is_valid and not store_matches(doc, payload):
-		log.db_set("error", f"Ignored: webhook is from store {payload.get('merchant')}, channel {doc.name} is store {doc.store_id}.")
+		log.db_set("error", f"Ignored: webhook is from store {payload.get('merchant')}, {doc.name} is store {doc.store_id}.")
 		frappe.db.commit()
 		return {"ok": True, "ignored": "store mismatch"}
 
@@ -148,21 +191,19 @@ def webhook(channel: str | None = None):
 
 
 @frappe.whitelist()
-def register_webhooks(channel: str):
-	"""Subscribe the platform to order events, delivering to this site's webhook URL."""
+def register_webhooks(store: str):
+	"""Subscribe the platform to order events, delivering to this site's one webhook URL."""
 	frappe.only_for("System Manager")
-	doc = _get_channel(channel)
-	url = frappe.utils.get_url(
-		"/api/method/erpnext_marketplace_connector.erpnext_marketplace_connector.api.webhook"
-	) + "?" + urlencode({"channel": doc.name})
-	registered = get_connector(doc).register_webhooks(url, ["order.created", "order.updated", "order.cancelled"])
-	return {"url": url, "registered": registered}
+	doc = _get_store(store)
+	url = frappe.utils.get_url(f"/api/method/{API}.webhook")
+	result = get_connector(doc).register_webhooks(url, WEBHOOK_EVENTS)
+	return {"url": url, **result}
 
 
 @frappe.whitelist()
-def import_products(channel: str):
-	"""Create ERPNext Items + Marketplace Item Map rows for the channel's catalog."""
+def import_products(store: str):
+	"""Create ERPNext Items + Marketplace Item Map rows for the store's catalog."""
 	frappe.only_for("System Manager")
 	from .catalog import import_products as run
 
-	return run(channel)
+	return run(store)

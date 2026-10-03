@@ -73,8 +73,8 @@
    "fieldname": "store_url",
    "fieldtype": "Data",
    "label": "Store URL",
-   "reqd": 1,
-   "description": "Base URL of the store, e.g. https://mystore.myshopify.com or https://mystore.salla.sa"
+   "description": "Legacy: moved to Marketplace Store.",
+   "hidden": 1
   },
   {
    "fieldname": "credentials_section",
@@ -107,17 +107,22 @@
    "fieldtype": "Section Break",
    "label": "OAuth / Connector State",
    "collapsible": 1,
-   "description": "Filled in automatically by the connector (e.g. via the OAuth authorize flow). Not usually edited by hand."
+   "description": "Filled in automatically by the connector (e.g. via the OAuth authorize flow). Not usually edited by hand.",
+   "hidden": 1
   },
   {
    "fieldname": "access_token",
    "fieldtype": "Password",
-   "label": "Access Token"
+   "label": "Access Token",
+   "hidden": 1,
+   "description": "Legacy: moved to Marketplace Store."
   },
   {
    "fieldname": "refresh_token",
    "fieldtype": "Password",
-   "label": "Refresh Token"
+   "label": "Refresh Token",
+   "hidden": 1,
+   "description": "Legacy: moved to Marketplace Store."
   },
   {
    "fieldname": "column_break_oauth",
@@ -127,7 +132,9 @@
    "fieldname": "token_expires_at",
    "fieldtype": "Datetime",
    "label": "Access Token Expires At",
-   "read_only": 1
+   "read_only": 1,
+   "hidden": 1,
+   "description": "Legacy: moved to Marketplace Store."
   },
   {
    "fieldname": "connector_settings",
@@ -139,20 +146,20 @@
   {
    "fieldname": "mapping_section",
    "fieldtype": "Section Break",
-   "label": "ERPNext Mapping"
+   "label": "ERPNext Defaults for all stores",
+   "description": "Each Marketplace Store uses these unless it sets its own."
   },
   {
    "fieldname": "warehouse",
    "fieldtype": "Link",
-   "label": "Warehouse",
+   "label": "Default Warehouse",
    "options": "Warehouse",
-   "reqd": 1,
    "description": "Stock for orders from this channel is deducted from here, and stock levels are pushed back from here."
   },
   {
    "fieldname": "price_list",
    "fieldtype": "Link",
-   "label": "Price List",
+   "label": "Default Price List",
    "options": "Price List"
   },
   {
@@ -169,19 +176,20 @@
   {
    "fieldname": "customer_group",
    "fieldtype": "Link",
-   "label": "Customer Group",
+   "label": "Default Customer Group",
    "options": "Customer Group"
   },
   {
    "fieldname": "tax_template",
    "fieldtype": "Link",
-   "label": "Sales Taxes and Charges Template",
+   "label": "Default Sales Taxes and Charges Template",
    "options": "Sales Taxes and Charges Template"
   },
   {
    "fieldname": "sync_section",
    "fieldtype": "Section Break",
-   "label": "Sync Status"
+   "label": "Sync Status",
+   "hidden": 1
   },
   {
    "default": "Idle",
@@ -189,13 +197,17 @@
    "fieldtype": "Select",
    "label": "Sync Status",
    "options": "Idle\nSyncing\nError",
-   "read_only": 1
+   "read_only": 1,
+   "hidden": 1,
+   "description": "Legacy: moved to Marketplace Store."
   },
   {
    "fieldname": "last_synced_orders",
    "fieldtype": "Datetime",
    "label": "Last Synced (Orders)",
-   "read_only": 1
+   "read_only": 1,
+   "hidden": 1,
+   "description": "Legacy: moved to Marketplace Store."
   },
   {
    "fieldname": "column_break_sync",
@@ -205,13 +217,17 @@
    "fieldname": "last_synced_stock",
    "fieldtype": "Datetime",
    "label": "Last Synced (Stock)",
-   "read_only": 1
+   "read_only": 1,
+   "hidden": 1,
+   "description": "Legacy: moved to Marketplace Store."
   },
   {
    "fieldname": "last_sync_error",
    "fieldtype": "Small Text",
    "label": "Last Sync Error",
-   "read_only": 1
+   "read_only": 1,
+   "hidden": 1,
+   "description": "Legacy: moved to Marketplace Store."
   },
   {
    "fieldname": "notes_section",
@@ -229,11 +245,17 @@
    "fieldtype": "Data",
    "label": "Store ID",
    "read_only": 1,
-   "description": "Filled in when the channel connects. Incoming webhooks whose store does not match are ignored, so several stores on one site cannot mix up orders. Empty = no check."
+   "description": "Legacy: moved to Marketplace Store.",
+   "hidden": 1
   }
  ],
  "index_web_pages_for_search": 1,
- "links": [],
+ "links": [
+  {
+   "link_doctype": "Marketplace Store",
+   "link_fieldname": "marketplace_channel"
+  }
+ ],
  "modified": "2026-09-30 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "ERPNext Marketplace Connector",
